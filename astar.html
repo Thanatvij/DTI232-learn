@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>A* ทีละบรรทัด</title>
+<link rel="icon" href="favicon.svg">
+<style>
+/*FONTS-START*/
+@font-face{font-family:Plex;src:url(fonts/ibm-plex-sans-thai-thai-400-normal.woff2);font-weight:400;unicode-range:U+0E00-0E7F}
+@font-face{font-family:Plex;src:url(fonts/ibm-plex-sans-thai-thai-600-normal.woff2);font-weight:600;unicode-range:U+0E00-0E7F}
+@font-face{font-family:Plex;src:url(fonts/ibm-plex-sans-thai-thai-700-normal.woff2);font-weight:700;unicode-range:U+0E00-0E7F}
+@font-face{font-family:Plex;src:url(fonts/ibm-plex-sans-thai-latin-400-normal.woff2);font-weight:400}
+@font-face{font-family:Plex;src:url(fonts/ibm-plex-sans-thai-latin-600-normal.woff2);font-weight:600}
+@font-face{font-family:Plex;src:url(fonts/ibm-plex-sans-thai-latin-700-normal.woff2);font-weight:700}
+@font-face{font-family:PlexMono;src:url(fonts/ibm-plex-mono-latin-400-normal.woff2);font-weight:400}
+@font-face{font-family:PlexMono;src:url(fonts/ibm-plex-mono-latin-600-normal.woff2);font-weight:600}
+/*FONTS-END*/
+/* แนวคิด: กระดาษกราฟสีฟ้าอ่อน โทนเดียวกับเว็บ DTI232 เดิม โหนดสามสถานะ (ยังไม่เจอ / รอเลือก / นำออกแล้ว) */
+:root{
+  --paper:#FFFFFF;--grid:#E8EFF8;--ink:#1B2A4A;--graphite:#5A6270;--line:#C9D3E0;--soft:#F3F7FC;
+  --und:#C7CDD6;--disc:#FFD84D;--done:#34A56F;--focus:#2F6FEB;--warn:#C2410C;--ok:#1F7A4D;--nodeink:#0F1726;
+  --sans:Plex,"IBM Plex Sans Thai","Noto Sans Thai","Sukhumvit Set",Tahoma,sans-serif;
+  --mono:PlexMono,"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --paper:#0F1726;--grid:#17223A;--ink:#E4EAF5;--graphite:#9AA6B8;--line:#2C3A55;--soft:#16213A;
+  --und:#8C97AB;--disc:#E5B800;--done:#4FBF8A;--focus:#6FA0FF;--warn:#FB923C;--ok:#4FBF8A;color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#0F1726;--grid:#17223A;--ink:#E4EAF5;--graphite:#9AA6B8;--line:#2C3A55;--soft:#16213A;
+  --und:#8C97AB;--disc:#E5B800;--done:#4FBF8A;--focus:#6FA0FF;--warn:#FB923C;--ok:#4FBF8A;color-scheme:dark}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;font-family:var(--sans);color:var(--ink);font-size:16px;line-height:1.65;background-color:var(--paper);
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:24px 24px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1180px;margin:0 auto;padding-block:14px 64px}
+.back{display:inline-block;font-weight:600;text-decoration:none;color:var(--ink);margin-bottom:4px}
+.back:hover{text-decoration:underline}
+h1{font-size:1.7rem;line-height:1.25;margin:4px 0 6px}
+h2{font-size:1.3rem;margin:30px 0 8px}
+h3{font-size:1.05rem;margin:0 0 6px}
+.lead{color:var(--graphite);max-width:72ch;margin:0 0 14px}
+.card{background:var(--paper);border:1.5px solid var(--line);border-radius:10px;padding:14px;margin-bottom:14px;min-width:0}
+.idea{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;margin-bottom:14px}
+.idea .card{margin:0}
+.idea b.big{display:block;font-family:var(--mono);font-size:1.15rem;margin-bottom:2px}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:.9rem;color:var(--graphite);margin:6px 0 0}
+.dot{display:inline-block;width:13px;height:13px;border-radius:50%;margin-right:6px;vertical-align:-2px;border:1.5px solid var(--ink)}
+.dot.und{background:var(--und)}.dot.disc{background:var(--disc)}.dot.done{background:var(--done)}
+.bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 12px}
+.btn{font:inherit;font-size:.95rem;border:1.5px solid var(--ink);background:var(--paper);color:var(--ink);padding:6px 14px;border-radius:8px;cursor:pointer;min-height:38px}
+.btn.main{background:var(--ink);color:var(--paper)}
+.btn:disabled{opacity:.4;cursor:default}
+button:focus-visible,select:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+select{font:inherit;font-size:.92rem;border:1.5px solid var(--line);background:var(--paper);color:var(--ink);border-radius:8px;padding:5px 8px}
+.tog{display:flex;gap:6px;align-items:center;font-size:.92rem;cursor:pointer}
+.sp{flex:1}
+.prog{font-family:var(--mono);font-size:.9rem;color:var(--graphite)}
+.player{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:14px;align-items:start}
+@media (max-width:900px){.player{grid-template-columns:minmax(0,1fr)}}
+svg.graph{width:100%;height:auto;display:block}
+svg text{font-family:var(--mono)}
+.edge{stroke:var(--graphite);stroke-width:2;fill:none}
+.edge.hot{stroke:var(--focus);stroke-width:4}
+.edge.upd{stroke:var(--ok);stroke-width:5}
+.edge.no{stroke:var(--warn);stroke-width:4;stroke-dasharray:7 5}
+.edge.path{stroke:var(--ok);stroke-width:6}
+.ew{font-size:15px;font-weight:600;fill:var(--ink);paint-order:stroke;stroke:var(--paper);stroke-width:5px}
+.nc{stroke:var(--ink);stroke-width:2.5}
+.n-und .nc{fill:var(--und)}.n-disc .nc{fill:var(--disc)}.n-done .nc{fill:var(--done)}
+.nl{font-size:19px;font-weight:700;fill:var(--nodeink);text-anchor:middle}
+.nh{font-size:12px;fill:var(--nodeink);text-anchor:middle}
+.gf{font-size:13.5px;font-weight:600;fill:var(--ink);text-anchor:middle;paint-order:stroke;stroke:var(--paper);stroke-width:4px}
+.ring{fill:none;stroke:transparent;stroke-width:4}
+.scan .ring{stroke:var(--focus);stroke-dasharray:6 4}
+.best .ring{stroke:var(--ink);stroke-width:5}
+.cur .ring{stroke:var(--focus);stroke-width:6}
+.vv .ring{stroke:var(--warn);stroke-width:5;stroke-dasharray:3 4}
+.say{border-left:6px solid var(--focus);border-radius:0;background:var(--soft);padding:10px 12px;margin-bottom:12px;min-height:118px}
+.say .tag{display:inline-block;font-size:.78rem;font-weight:700;letter-spacing:.04em;background:var(--ink);color:var(--paper);border-radius:999px;padding:1px 10px;margin-bottom:4px}
+.say p{margin:2px 0 0;font-size:1.02rem}
+.say .mono{font-family:var(--mono);font-size:.95rem}
+.guess{border:2px dashed var(--focus);border-radius:10px;padding:12px;margin-bottom:12px;background:var(--paper)}
+.guess .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.guess .fb{margin-top:8px}
+.ok{color:var(--ok);font-weight:700}.bad{color:var(--warn);font-weight:700}
+.mini{border-collapse:collapse;width:100%;font-family:var(--mono);font-size:.92rem;margin-top:10px;table-layout:fixed}
+.mini th,.mini td{border:1px solid var(--line);padding:3px 4px;text-align:center}
+.mini th{background:var(--soft);font-weight:600}
+.mini th.rl{text-align:left;width:5.6em;font-size:.82rem;color:var(--graphite)}
+.mini td.c-scan,.mini th.c-scan{outline:3px dashed var(--focus);outline-offset:-3px}
+.mini td.c-best{background:var(--disc);color:#1B2A4A;font-weight:700}
+.mini td.c-cur,.mini th.c-cur{outline:3px solid var(--focus);outline-offset:-3px}
+.mini td.c-vv,.mini th.c-vv{outline:3px dotted var(--warn);outline-offset:-3px}
+.mini td.dn{color:var(--graphite);text-decoration:line-through}
+.pc{font-family:var(--mono);font-size:.84rem;line-height:1.55;background:var(--soft);border-radius:8px;padding:8px 6px;margin:0;overflow-x:auto}
+.pc div{white-space:pre;padding:0 6px;border-radius:4px}
+.pc div.on{background:var(--disc);color:#1B2A4A}
+.pc .ln{display:inline-block;width:3ch;color:var(--graphite)}
+.pc div.on .ln{color:#1B2A4A}
+.note{font-size:.88rem;color:var(--graphite);margin:6px 0 0}
+.out{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:.95rem}
+.out th,.out td{border:1px solid var(--line);padding:5px 8px;text-align:center}
+.out th{background:var(--soft);font-weight:600}
+.out th.rl{text-align:left}
+.out s{color:var(--graphite)}
+.out td b{font-weight:700}
+.tscroll{max-height:420px;overflow:auto;border:1px solid var(--line);border-radius:8px;position:relative}
+.tr{border-collapse:collapse;width:100%;font-size:.9rem;min-width:720px}
+.tr th,.tr td{border:1px solid var(--line);padding:3px 8px;text-align:center;white-space:nowrap}
+.tr th{background:var(--soft);position:sticky;top:0;z-index:1;font-family:var(--sans)}
+.tr td{font-family:var(--mono)}
+.tr td.pend{color:var(--graphite);opacity:.55}
+.tr td.now{background:var(--disc);color:#1B2A4A;font-weight:700}
+.tr tr.k1 td{border-top:2.5px solid var(--ink)}
+.tr td.chg{font-weight:700}
+.tr td.res{text-align:left}
+.sum{border:2px solid var(--ok);border-radius:10px;padding:12px;margin-bottom:14px;background:var(--soft)}
+.sum[hidden]{display:none}
+details.q{border:1.5px solid var(--line);border-radius:10px;padding:2px 14px;margin-bottom:10px;background:var(--paper)}
+details.q summary{cursor:pointer;font-weight:600;padding:10px 0}
+details.q[open] summary{border-bottom:1px dashed var(--line);margin-bottom:8px}
+details.q p,details.q li{max-width:78ch}
+.tbl2{border-collapse:collapse;font-size:.92rem;margin:6px 0 10px}
+.tbl2 th,.tbl2 td{border:1px solid var(--line);padding:4px 10px;text-align:left}
+.tbl2 th{background:var(--soft)}
+code{font-family:var(--mono);font-size:.92em;background:var(--soft);border-radius:4px;padding:0 4px}
+.foot{margin-top:28px;color:var(--graphite);font-size:.88rem}
+@media (prefers-reduced-motion:no-preference){.nc{transition:fill .25s}.edge{transition:stroke .2s,stroke-width .2s}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<a class="back" href="index.html">← DTI232 เข้าใจอัลกอริทึม (หน้าแรก)</a>
+<h1>A* ทีละบรรทัด</h1>
+<p class="lead">กดไล่ตามซูโดโค้ดของอาจารย์ทีละบรรทัด ดูว่าแต่ละรอบเลือกโหนดไหนเพราะอะไร และตาราง trace ถูกเขียนขึ้นทีละช่องอย่างไร ใช้กราฟตัวอย่างจากไฟล์ A* ของอาจารย์</p>
+
+<div class="idea">
+  <div class="card"><b class="big">f = g + h</b>g คือต้นทุนจริงจาก S มาถึงโหนดนี้ h คือค่าประมาณจากโหนดนี้ไปเป้าหมาย (โจทย์ให้) f คือต้นทุนรวมที่คาดไว้ถ้าไปทางนี้</div>
+  <div class="card"><b class="big">ลูป i → เลือก u</b>ในโหนดที่ยังไม่ถูกนำออก (done = 0) หยิบตัวที่ <b>f ต่ำสุด</b> เป็น u (บรรทัด 9–12)</div>
+  <div class="card"><b class="big">ลูป v → อัปเดต</b>ดูเพื่อนบ้านของ u ถ้าทางผ่าน u ถูกกว่าที่รู้ ให้แก้ g, f, parent (บรรทัด 16–22)</div>
+</div>
+<div class="legend" aria-label="สีของโหนด">
+  <span><i class="dot und"></i>ยังไม่เจอ (g = ∞)</span>
+  <span><i class="dot disc"></i>เจอแล้ว รอถูกเลือก (done = 0)</span>
+  <span><i class="dot done"></i>ถูกนำออกแล้ว (done = 1)</span>
+</div>
+
+<h2>ลองเล่น</h2>
+<div class="bar" role="group" aria-label="ตัวควบคุม">
+  <button class="btn" id="bReset">⏮ เริ่มใหม่</button>
+  <button class="btn" id="bPrev">◀ ย้อน</button>
+  <button class="btn main" id="bNext">ถัดไป ▶</button>
+  <button class="btn" id="bRound">ข้ามไปรอบถัดไป ⏭</button>
+  <button class="btn" id="bPlay">▶▶ เล่นอัตโนมัติ</button>
+  <select id="sSpeed" aria-label="ความเร็ว"><option value="1100">ช้า</option><option value="650" selected>กลาง</option><option value="320">เร็ว</option></select>
+  <span class="sp"></span>
+  <span class="prog" id="prog"></span>
+</div>
+<div class="bar" role="group" aria-label="ตัวเลือก">
+  <label class="tog"><input type="checkbox" id="cGuess"> โหมดทายก่อน <span class="note" style="margin:0">(ทายว่ารอบนี้จะเลือกโหนดไหน)</span></label>
+  <span class="sp"></span>
+  <label class="tog"><input type="checkbox" id="cZero"> ให้ h = 0 ทุกโหนด</label>
+  <label class="tog">ถ้า f เท่ากัน
+    <select id="sTie"><option value="index">เลือกดัชนีน้อยกว่า (ตามบรรทัด 11)</option><option value="goal">เลือกเป้าหมาย G ก่อน</option></select></label>
+</div>
+
+<div class="player">
+  <div>
+    <div class="card" style="padding:6px">
+      <svg class="graph" id="svg" viewBox="0 0 680 360" role="img" aria-label="กราฟ S A B C G พร้อมน้ำหนักเส้นเชื่อมและค่า h"></svg>
+    </div>
+    <div class="card">
+      <h3 id="miniTitle">ค่าของทุกโหนดตอนนี้</h3>
+      <table class="mini" id="mini" aria-label="ค่า f, done และ W ของแต่ละโหนด"></table>
+      <p class="note">ดัชนี 1–5 คือ S A B C G ตามลำดับ ลูป i ไล่ตามดัชนี ถ้า f เท่ากัน ตัวที่ดัชนีน้อยกว่าเจอก่อนจึงชนะ</p>
+    </div>
+  </div>
+  <div>
+    <div class="guess" id="guess" hidden></div>
+    <div class="say" id="say" aria-live="polite"></div>
+    <div class="card" style="padding:8px">
+      <pre class="pc" id="pc" aria-label="ซูโดโค้ด ASTAR"></pre>
+      <p class="note" id="tieNote" hidden>กฎเสริมที่เลือก: ถ้า f เท่ากับ best และโหนด i คือ t ให้เลือก i (ต่างจากบรรทัด 11 ที่ใช้ &lt; อย่างเดียว)</p>
+    </div>
+  </div>
+</div>
+
+<div class="sum" id="sum" hidden></div>
+
+<h2>Output และตาราง Trace</h2>
+<p class="lead">เขียนแบบกระดาษ DFS ของคุณ: Output อยู่ด้านบนแล้วขีดฆ่าแก้ค่า ตาราง trace ไล่ตามบรรทัดของซูโดโค้ด ช่องสีเหลืองคือช่องที่เพิ่งเขียนในขั้นล่าสุด</p>
+<div class="card">
+  <div style="overflow-x:auto"><table class="out" id="out"></table></div>
+  <p class="note" id="outNote"></p>
+</div>
+<div class="card">
+  <div class="tscroll" id="tscroll"><table class="tr" id="tr"></table></div>
+  <p class="note">คอลัมน์ u เขียนที่แถวแรกของรอบ แล้วใช้ <code>│</code> แทนเส้นที่ลากลงมา ลูป i ทำเสร็จทั้ง 5 แถวก่อน แล้วลูป v จึงเริ่ม ตารางนี้วางไว้แถวเดียวกันเพื่อให้สั้นลง</p>
+</div>
+
+<h2>จุดที่ชวนสับสน</h2>
+<p class="lead">ตัวอย่างในหัวข้อนี้อ้างอิงค่าตั้งต้น (h ปกติ และเลือกดัชนีน้อยกว่าเมื่อ f เท่ากัน)</p>
+<details class="q"><summary>ดัชนีกับค่า f ไม่ใช่เลขเดียวกัน</summary>
+  <p>ในรอบ 3 เลือก <code>u = 4</code> (โหนด C) และ C มี <code>f = 4</code> ด้วย เลข 4 สองตัวนี้บังเอิญเท่ากัน ดัชนี 4 คือลำดับของโหนด C ส่วน f = 4 มาจาก g + h = 3 + 1 การเลือก u เทียบเฉพาะค่า f ถ้า C มีดัชนีอื่นก็ยังถูกเลือกอยู่ดี</p></details>
+<details class="q"><summary>ถูกเลือกเป็น u ไม่ได้แปลว่าอยู่ในเส้นทางคำตอบ</summary>
+  <p>A ถูกเลือกเป็น u ในรอบ 4 แต่เส้นทางคือ S → B → C → G ไม่มี A เส้นทางอ่านจาก parent ย้อนจาก G: parent[G] = C, parent[C] = B, parent[B] = S ส่วน "ถูกเลือก" หมายถึงถูกนำออกมาตรวจเพื่อนบ้านเท่านั้น</p></details>
+<details class="q"><summary>ทำไมไม่จบทันทีตอนเจอ G หรือตอน f เท่ากัน</summary>
+  <p>บรรทัด 14 จบเมื่อ <b>G ถูกเลือกเป็น u</b> ไม่ใช่ตอน G ถูกใส่ค่า f ในรอบ 3 ตอน f[A] = f[G] = 5 เท่ากัน กฎ <code>f[i] &lt; best</code> ให้ตัวที่ไล่เจอก่อน (A ดัชนี 2) ชนะ G ดัชนี 5 ลองสลับกฎเป็น "เลือกเป้าหมาย G ก่อน" ในเครื่องมือด้านบน จะจบที่รอบ 4 ได้เส้นทางและต้นทุนเท่าเดิม</p></details>
+<details class="q"><summary>รอบ 4 มีการตัดสิน 2 ครั้งที่ต่างกัน</summary>
+  <ol><li><b>เลือก u (บรรทัด 11):</b> A กับ G มี f เท่ากันที่ 5 เลือก A</li>
+  <li><b>แก้ค่า G ไหม (บรรทัด 19):</b> ผ่าน A ได้ new = 2 + 4 = 6 แต่ 6 &lt; g[G] = 5 เป็นเท็จ จึงไม่แก้ g, f, parent ของ G</li></ol>
+  <p>A ยังถูกเลือกจริงและ done[A] เป็น 1 สิ่งที่ไม่เปลี่ยนคือค่าของ G</p></details>
+<details class="q"><summary>ต้นทุน 5 มาจากบรรทัดไหน</summary>
+  <p>ตั้งที่บรรทัด 20 ในรอบ 3 ตอน u = C และ v = G: new = g[C] + W[C][G] = 3 + 2 = 5 (บรรทัด 18) และ 5 &lt; ∞ จริง (บรรทัด 19) จึง g[G] ← 5 รอบ 4 ค่า new = 6 ไม่ผ่านบรรทัด 19 จึงไม่ถูกแก้ แล้วบรรทัด 14 คืนอาร์เรย์ g กับ parent ต้นทุนของเส้นทางคือ g[G]</p></details>
+<details class="q"><summary>เขียน trace ลงกระดาษยังไง</summary>
+  <ol>
+    <li>วาด Output ด้านบน: แถว g, f, parent, done ใต้ดัชนี 1–5 พร้อมชื่อโหนด ใส่ค่าเริ่มต้นหลังบรรทัด 1–7</li>
+    <li>เขียนตั้งค่าไว้ข้างขวา: n = 5, s = 1 (S), t = 5 (G) และค่า h</li>
+    <li>แต่ละรอบเขียน k แล้วไล่ลูป i ครบ 1–5: เขียน f[i] (หรือ done) และ best ที่เปลี่ยน</li>
+    <li>ไล่ครบแล้วเขียน u ที่แถวแรกของรอบแล้วลาก <code>│</code> ลงมา ถ้า u = t จบเลย</li>
+    <li>ไล่ลูป v ครบ 1–5: เขียน W[u][v] และ new ถ้า new &lt; g[v] ให้ไปขีดฆ่าแก้ g, f, parent ใน Output</li>
+    <li>ปิดท้ายด้วย order ของ u และย้อน parent จาก t เพื่อเขียนเส้นทางกับต้นทุน</li>
+  </ol></details>
+<details class="q"><summary>ตารางสรุปของอาจารย์ในไฟล์ A* ต่างจากตารางข้างบนยังไง</summary>
+  <p>ตารางในหัวข้อ 3 ของไฟล์เขียนเป็นผลหลังไล่ลูปแล้ว: 1 แถวต่อ 1 โหนดที่ถูกนำออก ช่อง f/ผล เขียนโหนดที่เพิ่มเป็น <code>โหนด(g, h, f)</code></p>
+  <table class="tbl2"><tr><th>นำออก</th><th>g</th><th>h</th><th>f / ผล</th></tr>
+  <tr><td>S</td><td>0</td><td>–</td><td>เพิ่ม A(2,3,5), B(1,3,4)</td></tr>
+  <tr><td>B</td><td>1</td><td>3</td><td>f=4; เพิ่ม C(3,1,4)</td></tr>
+  <tr><td>C</td><td>3</td><td>1</td><td>f=4; เพิ่ม G(5,0,5)</td></tr>
+  <tr><td>A หรือ G</td><td>–</td><td>–</td><td>ค่า f เท่ากันที่ 5 ต้องมีกฎตัดสิน</td></tr>
+  <tr><td>G</td><td>5</td><td>0</td><td>คืนเส้นทาง S→B→C→G</td></tr></table>
+  <p>ตารางข้างบนคือตารางนี้ที่ขยายงานของลูป i และ v ออกมาให้เห็นครบ</p></details>
+
+<p class="foot">กราฟ: S→A = 2, S→B = 1, A→G = 4, B→C = 2, C→G = 2 · h(A) = 3, h(B) = 3, h(C) = 1, h(G) = 0 · h(S) ไฟล์ไม่ได้ระบุ (ใช้ 0 ในบรรทัด 7 ซึ่งไม่กระทบผล เพราะ S เป็นโหนดเดียวที่รอเลือกในรอบแรก)</p>
+</div>
+
+<script>
+/*ENGINE-START*/
+const INF=Infinity,N=5,S=1,T=5;
+const NAMES=['S','A','B','C','G'];
+const EDGES=[[1,2,2],[1,3,1],[2,5,4],[3,4,2],[4,5,2]];
+const H_DEFAULT=[0,3,3,1,0];
+const nm=i=>NAMES[i-1];
+const fmt=x=>x===INF?'∞':String(x);
+function simulate(opts){
+  const tie=opts.tie||'index';
+  const h=opts.zeroH?[0,0,0,0,0]:H_DEFAULT.slice();
+  const W=Array.from({length:N+1},()=>Array(N+1).fill(INF));
+  EDGES.forEach(([a,b,w])=>{W[a][b]=w});
+  const g=Array(N+1).fill(INF),f=Array(N+1).fill(INF),parent=Array(N+1).fill(null),done=Array(N+1).fill(0);
+  g[S]=0;f[S]=h[S-1];
+  const steps=[],rounds={};
+  const snap=e=>Object.assign({g:g.slice(),f:f.slice(),parent:parent.slice(),done:done.slice(),best:INF,u:null,i:null,v:null,k:0},e);
+  steps.push({type:'init',k:0,lines:[1,2,3,4,5,6,7],snap:snap({}),
+    tag:'เริ่มต้น',text:'บรรทัด 1–7: ตั้งค่าเริ่มต้น ทุกโหนด g = ∞, f = ∞, parent = NIL, done = 0 แล้วตั้ง g[S] = 0 และ f[S] = h[S]'});
+  let k=0;
+  while(true){
+    k++;
+    let best=INF,u=null;
+    const cands=[];
+    for(let i=1;i<=N;i++)if(!done[i])cands.push({i,f:f[i]});
+    rounds[k]={cands,u:null};
+    for(let i=1;i<=N;i++){
+      const bestBefore=best;
+      let cond=false,tieGoal=false;
+      if(!done[i]){
+        if(f[i]<best)cond=true;
+        else if(tie==='goal'&&i===T&&f[i]===best&&f[i]<INF){cond=true;tieGoal=true}
+      }
+      if(cond){best=f[i];u=i}
+      let text;
+      if(done[i])text=`${nm(i)} ถูกนำออกไปแล้ว (done = 1) ข้ามเลย ไม่ต้องเทียบ f`;
+      else if(f[i]===INF)text=`f[${nm(i)}] = ∞ (ยังไม่เคยเจอโหนดนี้) ∞ &lt; ${fmt(bestBefore)} เป็นเท็จ`;
+      else if(cond&&tieGoal)text=`f[${nm(i)}] = ${f[i]} เท่ากับ best แต่ ${nm(i)} คือเป้าหมาย t จึงเลือกก่อนตามกฎเสริม → u = ${nm(i)}`;
+      else if(cond)text=`f[${nm(i)}] = ${f[i]} &lt; best (${fmt(bestBefore)}) เป็นจริง → best = ${f[i]}, u = ${nm(i)}`;
+      else text=`f[${nm(i)}] = ${f[i]} &lt; best (${fmt(bestBefore)}) เป็นเท็จ ${f[i]===bestBefore?'(เท่ากัน ตัวที่เจอก่อนชนะ)':'(สูงกว่า)'} best และ u ไม่เปลี่ยน`;
+      if(i===1)text=`รอบ ${k}: best ← ∞, u ← NIL แล้วไล่ i = 1..${N} หาโหนดที่ f ต่ำสุดในกลุ่ม done = 0<br>`+text;
+      steps.push({type:'scan',k,j:i,roundStart:i===1,lines:i===1?[8,9,10,11].concat(cond?[12]:[]):[10,11].concat(cond?[12]:[]),
+        snap:snap({best,u,i,k}),data:{fi:f[i],doneI:done[i],bestBefore,best,cond},tag:'ลูป i · หา u',text});
+    }
+    rounds[k].u=u;
+    if(u===null){
+      steps.push({type:'nopath',k,lines:[13],snap:snap({best,u,k}),tag:'จบ',text:'ไม่มีโหนดให้เลือก (u = NIL) คืน NO-PATH'});
+      break;
+    }
+    if(u===T){
+      const path=[];let p=T;while(p){path.unshift(p);p=parent[p]}
+      steps.push({type:'goal',k,lines:[13,14],snap:snap({best,u,k}),data:{path,cost:g[T]},tag:'จบ',
+        text:`ไล่ i ครบแล้ว best = ${best}, u = ${nm(u)} ซึ่งคือเป้าหมาย t (บรรทัด 14) คืน g, parent ย้อนเส้นทางจาก parent: ${path.slice().reverse().map(nm).join(' ← ')} ต้นทุน g[${nm(T)}] = ${g[T]}`});
+      break;
+    }
+    done[u]=1;
+    steps.push({type:'pick',k,lines:[13,14,15],snap:snap({best,u,k}),tag:'เลือก u',
+      text:`ไล่ i ครบแล้ว best = ${best} ได้ <b>u = ${nm(u)}</b> (u ไม่ใช่ NIL และไม่ใช่ t) บรรทัด 15: done[${nm(u)}] ← 1 แล้วไปดูเพื่อนบ้านของ ${nm(u)}`});
+    for(let v=1;v<=N;v++){
+      const w=W[u][v];let res,nw=null;const gOld=g[v];
+      if(w===INF)res='noedge';
+      else if(done[v])res='done';
+      else{nw=g[u]+w;if(nw<g[v]){g[v]=nw;f[v]=nw+h[v-1];parent[v]=u;res='update'}else res='keep'}
+      let text,lines;
+      if(res==='noedge'){text=`${nm(u)} → ${nm(v)}: W = ∞ ไม่มีเส้นเชื่อม ข้าม`;lines=[16,17]}
+      else if(res==='done'){text=`${nm(v)} ถูกนำออกแล้ว (done = 1) ข้าม`;lines=[16,17]}
+      else if(res==='update'){text=`new = g[${nm(u)}] + W = ${snapG(steps,k,u)} + ${w} = ${nw} และ ${nw} &lt; g[${nm(v)}] (${fmt(gOld)}) เป็นจริง → g[${nm(v)}] = ${nw}, f[${nm(v)}] = ${nw} + h = ${f[v]}, parent[${nm(v)}] = ${nm(u)}`;lines=[16,17,18,19,20,21,22]}
+      else{text=`new = g[${nm(u)}] + W = ${g[u]} + ${w} = ${nw} แต่ ${nw} &lt; g[${nm(v)}] (${fmt(gOld)}) เป็นเท็จ → ไม่แก้ค่า (ทางเดิมถูกกว่าหรือเท่ากัน)`;lines=[16,17,18,19]}
+      if(v===1)text=`ลูป v: ไล่ v = 1..${N} ดูเพื่อนบ้านของ u = ${nm(u)}<br>`+text;
+      steps.push({type:'v',k,j:v,lines,snap:snap({best,u,v,k}),data:{w,nw,gOld,res},tag:'ลูป v · ตรวจเพื่อนบ้าน',text});
+    }
+  }
+  return{steps,rounds,h,W};
+}
+function snapG(steps,k,u){const s=steps[steps.length-1];return s.snap.g[u]}
+/*ENGINE-END*/
+
+const PSEUDO=[
+'ASTAR(W,h,n,s,t)',
+'1)  for i ← 1 to n','2)      g[i] ← ∞','3)      f[i] ← ∞','4)      parent[i] ← NIL','5)      done[i] ← 0',
+'6)  g[s] ← 0','7)  f[s] ← h[s]','8)  repeat',
+'9)      best ← ∞ ; u ← NIL','10)     for i ← 1 to n','11)         if done[i]=0 and f[i]<best then','12)             best ← f[i] ; u ← i',
+'13)     if u = NIL then return NO-PATH','14)     if u = t then return g,parent','15)     done[u] ← 1',
+'16)     for v ← 1 to n','17)         if W[u][v] < ∞ and done[v]=0 then','18)             new ← g[u] + W[u][v]','19)             if new < g[v] then',
+'20)                 g[v] ← new','21)                 f[v] ← g[v] + h[v]','22)                 parent[v] ← u','23) until false'];
+
+const POS=[null,{x:78,y:180},{x:270,y:66},{x:270,y:290},{x:450,y:290},{x:604,y:180}];
+const LBL=[null,{dy:50},{dy:-42},{dy:52},{dy:52},{dy:50}];
+const R=28;
+let SIM,STEPS,cur=0,timer=null;
+const answered={};let score={ok:0,all:0};
+const $=id=>document.getElementById(id);
+
+function buildGraph(){
+  let s='<defs>';
+  [['a0','var(--graphite)'],['a1','var(--focus)'],['a2','var(--ok)'],['a3','var(--warn)']].forEach(([id,c])=>{
+    s+=`<marker id="${id}" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto"><path d="M1 1L9 5L1 9z" fill="${c}"/></marker>`});
+  s+='</defs>';
+  EDGES.forEach(([a,b,w],idx)=>{
+    const p=POS[a],q=POS[b];const dx=q.x-p.x,dy=q.y-p.y,len=Math.hypot(dx,dy),ux=dx/len,uy=dy/len;
+    const x1=p.x+ux*(R+4),y1=p.y+uy*(R+4),x2=q.x-ux*(R+9),y2=q.y-uy*(R+9);
+    const mx=(x1+x2)/2+uy*17,my=(y1+y2)/2-ux*17;
+    s+=`<line class="edge" id="e${a}_${b}" x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" marker-end="url(#a0)"/>`;
+    s+=`<text class="ew" x="${mx.toFixed(1)}" y="${(my+5).toFixed(1)}" text-anchor="middle">${w}</text>`;
+  });
+  for(let i=1;i<=N;i++){
+    const p=POS[i];
+    s+=`<g id="n${i}" class="n-und"><circle class="ring" cx="${p.x}" cy="${p.y}" r="${R+7}"/><circle class="nc" cx="${p.x}" cy="${p.y}" r="${R}"/>
+    <text class="nl" x="${p.x}" y="${p.y-1}">${nm(i)}</text><text class="nh" id="nh${i}" x="${p.x}" y="${p.y+14}"></text>
+    <text class="gf" id="gf${i}" x="${p.x}" y="${p.y+LBL[i].dy}"></text></g>`;
+  }
+  $('svg').innerHTML=s;
+}
+
+function setSim(){
+  SIM=simulate({zeroH:$('cZero').checked,tie:$('sTie').value});STEPS=SIM.steps;cur=0;
+  Object.keys(answered).forEach(k=>delete answered[k]);score={ok:0,all:0};
+  $('guess').hidden=true;pending=null;
+  for(let i=1;i<=N;i++)$('nh'+i).textContent=i===S?'':'h='+SIM.h[i-1];
+  $('tieNote').hidden=$('sTie').value!=='goal';
+  stop();render();
+}
+
+function stateOf(sn,i){return sn.done[i]?'done':(sn.g[i]<INF?'disc':'und')}
+
+function render(){
+  const st=STEPS[cur],sn=st.snap;
+  const ty=st.type;
+  for(let i=1;i<=N;i++){
+    const g=$('n'+i);let c='n-'+stateOf(sn,i);
+    if(ty==='scan'&&sn.i===i)c+=' scan';
+    if(ty==='scan'&&sn.u===i)c+=' best';
+    if((ty==='pick'||ty==='v'||ty==='goal')&&sn.u===i)c+=' cur';
+    if(ty==='v'&&sn.v===i)c+=' vv';
+    g.setAttribute('class',c);
+    $('gf'+i).textContent=`g=${fmt(sn.g[i])} f=${fmt(sn.f[i])}`;
+  }
+  EDGES.forEach(([a,b])=>{
+    const e=$(`e${a}_${b}`);let c='edge',m='a0';
+    if(ty==='v'&&sn.u===a&&sn.v===b){
+      const r=st.data.res;
+      if(r==='update'){c+=' upd';m='a2'}else if(r==='keep'){c+=' no';m='a3'}else{c+=' hot';m='a1'}
+    }
+    if(ty==='goal'){const p=st.data.path;const ix=p.indexOf(a);if(ix>=0&&p[ix+1]===b){c+=' path';m='a2'}}
+    e.setAttribute('class',c);e.setAttribute('marker-end',`url(#${m})`);
+  });
+  $('say').innerHTML=`<span class="tag">${st.tag}</span><p>${st.text}</p>`;
+  const on=new Set(st.lines);
+  $('pc').innerHTML=PSEUDO.map((t,idx)=>{
+    const ln=idx===0?0:idx;const isOn=idx===0?false:(on.has(idx)||(idx===23&&false));
+    const m=t.match(/^(\d+\))(.*)$/);
+    const body=m?`<span class="ln">${m[1]}</span>${m[2].replace(/</g,'&lt;')}`:t;
+    return `<div class="${isOn?'on':''}">${m?body:t}</div>`}).join('');
+  renderMini(st);renderOut();renderTrace();renderSum();
+  $('prog').textContent=`ขั้น ${cur}/${STEPS.length-1}${st.k?` · รอบ ${st.k}`:''}`;
+  $('bPrev').disabled=cur===0;
+  const last=cur===STEPS.length-1;
+  $('bNext').disabled=last;$('bRound').disabled=last;
+  if(last)stop();
+}
+
+function renderMini(st){
+  const sn=st.snap,ty=st.type;const u=(ty==='pick'||ty==='v')?sn.u:null;
+  const W=SIM.W;
+  const phase=ty==='v'||ty==='pick'?'v':(ty==='scan'?'i':'');
+  $('miniTitle').textContent=phase==='v'?`ลูป v: เพื่อนบ้านของ u = ${nm(sn.u)}`:phase==='i'?'ลูป i: ไล่หา f ต่ำสุด':'ค่าของทุกโหนดตอนนี้';
+  const cls=i=>{
+    let c='';
+    if(ty==='scan'&&sn.i===i)c+=' c-scan';
+    if(ty==='v'&&sn.v===i)c+=' c-vv';
+    if((ty==='pick'||ty==='v')&&sn.u===i)c+=' c-cur';
+    return c};
+  let h='<tr><th class="rl">ดัชนี · โหนด</th>';
+  for(let i=1;i<=N;i++)h+=`<th class="${cls(i)}">${i} · ${nm(i)}</th>`;
+  h+='</tr><tr><th class="rl">f[i]</th>';
+  for(let i=1;i<=N;i++){
+    const dn=sn.done[i];let c=cls(i);
+    if(ty==='scan'&&sn.u===i&&!dn)c+=' c-best';
+    h+=`<td class="${c}${dn?' dn':''}">${fmt(sn.f[i])}</td>`}
+  h+='</tr><tr><th class="rl">done[i]</th>';
+  for(let i=1;i<=N;i++)h+=`<td class="${cls(i)}">${sn.done[i]}</td>`;
+  h+='</tr><tr><th class="rl">W[u][v]</th>';
+  for(let i=1;i<=N;i++)h+=`<td class="${cls(i)}">${u?fmt(W[u][i]):'–'}</td>`;
+  h+='</tr>';
+  if(ty==='scan')h+=`<tr><th class="rl">best / u</th><td colspan="${N}" style="text-align:left;padding-left:10px">best = ${fmt(sn.best)} · u = ${sn.u?nm(sn.u):'NIL'}</td></tr>`;
+  $('mini').innerHTML=h;
+}
+
+function histories(upto){
+  const H={g:[],f:[],parent:[],done:[]};
+  for(let i=1;i<=N;i++){H.g[i]=[];H.f[i]=[];H.parent[i]=[];H.done[i]=[]}
+  for(let s=0;s<=upto;s++){
+    const sn=STEPS[s].snap;
+    for(let i=1;i<=N;i++){
+      ['g','f','parent','done'].forEach(key=>{const a=H[key][i],val=sn[key][i];if(!a.length||a[a.length-1]!==val)a.push(val)})}}
+  return H;
+}
+function cellHist(a,key){
+  const show=x=>key==='parent'?(x?nm(x):'–'):(key==='done'?String(x):fmt(x));
+  if(a.length===1)return show(a[0]);
+  return a.slice(0,-1).map(x=>`<s>${show(x)}</s>`).join(' ')+' <b>'+show(a[a.length-1])+'</b>';
+}
+function renderOut(){
+  const H=histories(cur);
+  let h='<tr><th class="rl"></th>';for(let i=1;i<=N;i++)h+=`<th>${i} (${nm(i)})</th>`;h+='</tr>';
+  [['g[v]','g'],['f[v]','f'],['parent[v]','parent'],['done[v]','done']].forEach(([lab,key])=>{
+    h+=`<tr><th class="rl">${lab}</th>`;for(let i=1;i<=N;i++)h+=`<td>${cellHist(H[key][i],key)}</td>`;h+='</tr>'});
+  $('out').innerHTML=h;
+  $('outNote').textContent=SIM.h[S-1]===0&&!$('cZero').checked?'f[S] = h[S] ในบรรทัด 7: h(S) ไฟล์ไม่ได้ระบุ ใช้ 0 ซึ่งไม่กระทบผล':'';
+}
+
+function renderTrace(){
+  const Rr={};
+  for(let s=1;s<=cur;s++){
+    const st=STEPS[s],k=st.k;
+    const r=Rr[k]||(Rr[k]={rows:Array.from({length:N+1},()=>({})),u:null,goal:false,pick:0});
+    if(st.type==='scan')r.rows[st.j].i=Object.assign({s},st.data);
+    else if(st.type==='pick'){r.u=st.snap.u;r.pick=s}
+    else if(st.type==='goal'){r.u=T;r.goal=true;r.pick=s}
+    else if(st.type==='nopath'){r.nopath=true;r.pick=s}
+    else if(st.type==='v')r.rows[st.j].v=Object.assign({s},st.data);
+  }
+  let h='<tr><th>k</th><th>u</th><th>i</th><th>f[i]</th><th>best</th><th>v</th><th>W[u][v]</th><th>new</th><th>ผล</th></tr>';
+  Object.keys(Rr).map(Number).sort((a,b)=>a-b).forEach(k=>{
+    const r=Rr[k];
+    for(let j=1;j<=N;j++){
+      const row=r.rows[j],i=row.i,v=row.v;
+      const nowI=i&&i.s===cur,nowV=v&&v.s===cur;
+      let cells='';
+      cells+=`<td>${j===1?k:'│'}</td>`;
+      const uNow=r.pick===cur;
+      cells+=`<td class="${r.u&&j===1?(uNow?'now':'chg'):''}${!r.u&&j===1?' pend':''}">${j===1?(r.u?`${r.u} (${nm(r.u)})`:'…'):'│'}</td>`;
+      cells+=`<td class="${i?(nowI?'now':''):'pend'}">${i?`${j} (${nm(j)})`:'·'}</td>`;
+      cells+=`<td class="${i?(nowI?'now':''):'pend'}">${i?(i.doneI?'done':fmt(i.fi)):'·'}</td>`;
+      cells+=`<td class="${i?(nowI?'now':(i.cond?'chg':'')):'pend'}">${i?(i.cond?fmt(i.best):i.best===INF?'∞':fmt(i.best))+(!i.cond&&!i.doneI&&i.fi!==INF&&i.fi===i.bestBefore?' (เท่ากัน ไม่เปลี่ยน)':''):'·'}</td>`;
+      if(r.goal||r.nopath){
+        const lastRow=j===N;
+        cells+=`<td class="pend">–</td><td class="pend">–</td><td class="pend">–</td><td class="res${lastRow&&r.pick===cur?' now':''}">${lastRow?(r.goal?'u = t → return (บรรทัด 14)':'u = NIL → NO-PATH'):'–'}</td>`;
+      }else{
+        const cn=nowV?'now':(v?'':'pend');
+        cells+=`<td class="${cn}">${v?`${j} (${nm(j)})`:'·'}</td>`;
+        cells+=`<td class="${cn}">${v?fmt(v.w):'·'}</td>`;
+        let nw='·',res='·';
+        if(v){
+          if(v.res==='update'){nw=`${v.nw} (${v.nw}&lt;${fmt(v.gOld)} จริง)`;res=`แก้ ${nm(j)}: g=${v.nw}`}
+          else if(v.res==='keep'){nw=`${v.nw} (${v.nw}&lt;${fmt(v.gOld)} เท็จ)`;res='ไม่แก้'}
+          else{nw='–';res='–'}
+        }
+        cells+=`<td class="${cn}${v&&v.res==='update'?' chg':''}">${nw}</td>`;
+        cells+=`<td class="res ${cn}${v&&v.res==='update'?' chg':''}">${res}</td>`;
+      }
+      h+=`<tr class="${j===1?'k1':''}">${cells}</tr>`;
+    }
+  });
+  $('tr').innerHTML=h;
+  const box=$('tscroll'),el=box.querySelector('td.now');
+  if(el){const top=el.offsetTop;box.scrollTop=Math.max(0,top-box.clientHeight/2)}else if(cur===0)box.scrollTop=0;
+}
+
+function renderSum(){
+  const st=STEPS[cur],box=$('sum');
+  if(st.type!=='goal'&&st.type!=='nopath'){box.hidden=true;return}
+  box.hidden=false;
+  if(st.type==='nopath'){box.innerHTML='<b>ไม่พบเส้นทาง</b>';return}
+  const order=[];for(let s=1;s<=cur;s++){const x=STEPS[s];if(x.type==='pick')order.push(x.snap.u);if(x.type==='goal')order.push(T)}
+  const base=simulate({zeroH:false,tie:$('sTie').value}).steps.filter(x=>x.type==='pick'||x.type==='goal').map(x=>x.snap.u);
+  const same=order.join()===base.join();
+  box.innerHTML=`<h3 style="margin:0 0 4px">ผลสุดท้าย</h3>
+  <p style="margin:2px 0"><b>ลำดับ u:</b> ${order.map(nm).join(' → ')} (${order.length} รอบ)</p>
+  <p style="margin:2px 0"><b>ย้อน parent จาก ${nm(T)}:</b> ${st.data.path.slice().reverse().map(nm).join(' ← ')} หรือ <b>${st.data.path.map(nm).join(' → ')}</b></p>
+  <p style="margin:2px 0"><b>ต้นทุน:</b> g[${nm(T)}] = ${st.data.cost}</p>
+  ${$('cZero').checked&&!same?`<p class="note">เทียบกับตอนใช้ h ปกติ ลำดับ u คือ ${base.map(nm).join(' → ')} ค่า h ช่วยให้ไม่ต้องเสียรอบไปกับโหนดที่ดูไม่น่าไปถึงเป้าหมาย</p>`:''}`;
+}
+
+/* ---------- ตัวควบคุม ---------- */
+let pending=null;
+function roundStartIndex(from){for(let s=from;s<STEPS.length;s++)if(STEPS[s].roundStart)return s;return STEPS.length-1}
+function request(target){
+  target=Math.max(0,Math.min(STEPS.length-1,target));
+  const st=STEPS[target];
+  if($('cGuess').checked&&st.roundStart&&!answered[st.k]&&target>cur){showGuess(st.k,target);return false}
+  cur=target;render();return true;
+}
+function next(){if(cur<STEPS.length-1)return request(cur+1);return false}
+function showGuess(k,target){
+  stop();pending=target;
+  const info=SIM.rounds[k];const box=$('guess');
+  let b=`<b>ทายก่อน · รอบ ${k}</b><br>รอบนี้จะเลือก u เป็นโหนดไหน ดูสีและค่า f ในตารางด้านซ้าย แล้วเลือก`;
+  b+='<div class="row">';
+  info.cands.forEach(c=>{b+=`<button class="btn" data-g="${c.i}">${nm(c.i)}</button>`});
+  b+='</div><div class="fb" id="fb"></div>';
+  box.innerHTML=b;box.hidden=false;
+  box.querySelectorAll('[data-g]').forEach(btn=>btn.onclick=()=>answerGuess(k,+btn.dataset.g));
+}
+function answerGuess(k,gi){
+  const info=SIM.rounds[k];answered[k]=true;score.all++;
+  const ok=gi===info.u;if(ok)score.ok++;
+  const list=info.cands.map(c=>`${nm(c.i)} (f = ${fmt(c.f)})`).join(', ');
+  const fin=info.cands.filter(c=>c.f<INF);
+  const tied=fin.filter(c=>c.f===Math.min(...fin.map(x=>x.f)));
+  let why=`โหนดที่ยังไม่ done: ${list} ต่ำสุดคือ <b>${info.u?nm(info.u):'ไม่มี'}</b>`;
+  if(tied.length>1)why+=` (f เท่ากัน ${tied.map(c=>nm(c.i)).join(' กับ ')} จึงใช้กฎตัดสินที่เลือกไว้)`;
+  $('fb').innerHTML=`<span class="${ok?'ok':'bad'}">${ok?'ถูกต้อง':'ยังไม่ใช่'}</span> ${why}<br>คะแนนทาย ${score.ok}/${score.all} <button class="btn main" id="goOn" style="margin-left:8px">ดูตอนไล่ลูป i ▶</button>`;
+  $('guess').querySelectorAll('[data-g]').forEach(b=>b.disabled=true);
+  $('goOn').onclick=()=>{$('guess').hidden=true;cur=pending;pending=null;render()};
+  $('goOn').focus();
+}
+function stop(){if(timer){clearInterval(timer);timer=null}$('bPlay').textContent='▶▶ เล่นอัตโนมัติ'}
+function play(){
+  if(timer){stop();return}
+  if(cur===STEPS.length-1)cur=0;
+  $('bPlay').textContent='⏸ หยุด';
+  timer=setInterval(()=>{if(!next())stop()},+$('sSpeed').value);
+}
+$('bNext').onclick=()=>{$('guess').hidden=true;pending=null;next()};
+$('bPrev').onclick=()=>{$('guess').hidden=true;pending=null;stop();cur=Math.max(0,cur-1);render()};
+$('bReset').onclick=()=>{$('guess').hidden=true;pending=null;stop();cur=0;render()};
+$('bRound').onclick=()=>{$('guess').hidden=true;pending=null;stop();
+  let s=cur+1;while(s<STEPS.length&&!STEPS[s].roundStart)s++;
+  if(s>=STEPS.length)s=STEPS.length-1;request(s)};
+$('bPlay').onclick=play;
+$('sSpeed').onchange=()=>{if(timer){stop();play()}};
+$('cGuess').onchange=()=>{$('guess').hidden=true;pending=null};
+$('cZero').onchange=setSim;$('sTie').onchange=setSim;
+document.addEventListener('keydown',e=>{
+  if(/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName))return;
+  if(e.key==='ArrowRight'){e.preventDefault();$('bNext').click()}
+  if(e.key==='ArrowLeft'){e.preventDefault();$('bPrev').click()}
+});
+buildGraph();setSim();
+</script>
+</body>
+</html>
