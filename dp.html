@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>กำหนดการพลวัต ลองเล่น</title>
+<link rel="icon" href="favicon.svg">
+<style>
+@font-face{font-family:Plex;src:url(fonts/ibm-plex-sans-thai-thai-400-normal.woff2);font-weight:400;unicode-range:U+0E00-0E7F}
+@font-face{font-family:Plex;src:url(fonts/ibm-plex-sans-thai-thai-600-normal.woff2);font-weight:600;unicode-range:U+0E00-0E7F}
+@font-face{font-family:Plex;src:url(fonts/ibm-plex-sans-thai-thai-700-normal.woff2);font-weight:700;unicode-range:U+0E00-0E7F}
+@font-face{font-family:Plex;src:url(fonts/ibm-plex-sans-thai-latin-400-normal.woff2);font-weight:400}
+@font-face{font-family:Plex;src:url(fonts/ibm-plex-sans-thai-latin-600-normal.woff2);font-weight:600}
+@font-face{font-family:Plex;src:url(fonts/ibm-plex-sans-thai-latin-700-normal.woff2);font-weight:700}
+@font-face{font-family:PlexMono;src:url(fonts/ibm-plex-mono-latin-400-normal.woff2);font-weight:400}
+@font-face{font-family:PlexMono;src:url(fonts/ibm-plex-mono-latin-600-normal.woff2);font-weight:600}
+:root{--paper:#fff;--grid:#E8EFF8;--ink:#1B2A4A;--graphite:#5A6270;--line:#C9D3E0;--soft:#F3F7FC;--focus:#2F6FEB;--warn:#C2410C;--ok:#1F7A4D;
+--fill:#DDF3E7;--cur:#FFD84D;--read:#DCE8FF;--take:#FFE3CC;--curink:#1B2A4A;
+--sans:Plex,"IBM Plex Sans Thai","Noto Sans Thai",Tahoma,sans-serif;--mono:PlexMono,"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--paper:#0F1726;--grid:#17223A;--ink:#E4EAF5;--graphite:#9AA6B8;--line:#2C3A55;--soft:#16213A;--focus:#6FA0FF;--warn:#FB923C;--ok:#4FBF8A;--fill:#173B2D;--cur:#E5B800;--read:#1E3358;--take:#4A2E1A;color-scheme:dark}}
+:root[data-theme="dark"]{--paper:#0F1726;--grid:#17223A;--ink:#E4EAF5;--graphite:#9AA6B8;--line:#2C3A55;--soft:#16213A;--focus:#6FA0FF;--warn:#FB923C;--ok:#4FBF8A;--fill:#173B2D;--cur:#E5B800;--read:#1E3358;--take:#4A2E1A;color-scheme:dark}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;font-family:var(--sans);color:var(--ink);font-size:16px;line-height:1.65;background-color:var(--paper);background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:24px 24px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1100px;margin:0 auto;padding-block:14px 64px}
+.back{font-weight:600;color:var(--ink);text-decoration:none}.back:hover{text-decoration:underline}
+h1{font-size:1.7rem;line-height:1.25;margin:6px 0 6px}h2{font-size:1.25rem;margin:0 0 6px}h3{font-size:1.02rem;margin:0 0 4px}
+.lead{color:var(--graphite);max-width:74ch;margin:0 0 14px}
+.card{background:var(--paper);border:1.5px solid var(--line);border-radius:10px;padding:14px;margin-bottom:14px;min-width:0}
+.steps3{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;margin-bottom:14px}
+.steps3 .card{margin:0}.steps3 b.n{display:inline-block;width:1.6em;height:1.6em;line-height:1.6em;text-align:center;border-radius:50%;background:var(--ink);color:var(--paper);font-size:.85rem;margin-right:6px}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 12px}
+.tabs button,.btn{font:inherit;font-size:.95rem;font-weight:600;border:1.5px solid var(--ink);background:var(--paper);color:var(--ink);padding:6px 14px;border-radius:999px;cursor:pointer;min-height:38px}
+.tabs button[aria-selected=true],.btn.main{background:var(--ink);color:var(--paper)}
+.btn{border-radius:8px;font-weight:400}.btn.main{font-weight:600}.btn:disabled{opacity:.4;cursor:default}
+button:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.panel{display:none}.panel.on{display:block}
+.bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 10px}
+.bar .sp{flex:1}
+label.f{display:flex;gap:6px;align-items:center;font-size:.92rem}
+input[type=text],input[type=number]{font:inherit;font-family:var(--mono);font-size:.92rem;border:1.5px solid var(--line);background:var(--paper);color:var(--ink);border-radius:8px;padding:5px 8px;min-width:0}
+input[type=number]{width:5em}
+.err{color:var(--warn);font-size:.9rem;min-height:1.3em}
+.say{border-left:6px solid var(--focus);background:var(--soft);padding:10px 12px;margin-bottom:12px;min-height:96px}
+.say .tag{display:inline-block;font-size:.78rem;font-weight:700;background:var(--ink);color:var(--paper);border-radius:999px;padding:1px 10px;margin-bottom:4px}
+.say p{margin:2px 0}
+.scroll{overflow-x:auto}
+table.t{border-collapse:collapse;font-family:var(--mono);font-size:.95rem}
+table.t th,table.t td{border:1px solid var(--line);padding:5px 9px;text-align:center;min-width:2.6em}
+table.t th{background:var(--soft);font-weight:600}
+table.t th.rl{text-align:left;font-family:var(--sans);font-size:.85rem;white-space:nowrap}
+td.c-fill{background:var(--fill)}td.c-cur{background:var(--cur);color:var(--curink);font-weight:700;outline:3px solid var(--ink);outline-offset:-3px}
+td.c-read{background:var(--read);outline:2px dashed var(--focus);outline-offset:-3px}td.c-read2{background:var(--take);outline:2px dashed var(--warn);outline-offset:-3px}
+td.c-fut{color:var(--graphite);opacity:.5}td.c-path{outline:3px solid var(--ok);outline-offset:-3px;font-weight:700}
+td.click{cursor:pointer}
+.opt{border-collapse:collapse;font-family:var(--mono);font-size:.92rem;margin:6px 0}
+.opt th,.opt td{border:1px solid var(--line);padding:3px 10px;text-align:center}.opt th{background:var(--paper);font-family:var(--sans);font-size:.82rem}
+.opt tr.win td{background:var(--cur);color:var(--curink);font-weight:700}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin:6px 0}
+.two div{border:1.5px solid var(--line);border-radius:8px;padding:8px 10px;background:var(--paper)}
+.two div.win{border-color:var(--ok);border-width:2.5px}
+.chips{display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-family:var(--mono)}
+.chip{border:1.5px solid var(--ink);border-radius:999px;padding:1px 12px;background:var(--paper)}
+.chip.coin{background:var(--cur);color:var(--curink);font-weight:700}
+.res{border:2px solid var(--ok);border-radius:10px;padding:12px;background:var(--soft);margin-top:12px}.res[hidden]{display:none}
+.ok{color:var(--ok);font-weight:700}.bad{color:var(--warn);font-weight:700}
+.items{border-collapse:collapse;font-family:var(--mono);font-size:.92rem}
+.items th,.items td{border:1px solid var(--line);padding:2px 6px;text-align:center}.items th{background:var(--soft);font-family:var(--sans);font-size:.82rem}
+.items input{width:3.6em;text-align:center}
+.note{font-size:.88rem;color:var(--graphite)}
+pre.code{font-family:var(--mono);font-size:.86rem;background:var(--soft);border-radius:8px;padding:10px 12px;overflow-x:auto;margin:6px 0;line-height:1.55}
+code{font-family:var(--mono);font-size:.92em;background:var(--soft);border-radius:4px;padding:0 4px}
+details.q{border:1.5px solid var(--line);border-radius:10px;padding:2px 14px;margin-bottom:10px;background:var(--paper)}
+details.q summary{cursor:pointer;font-weight:600;padding:10px 0}details.q[open] summary{border-bottom:1px dashed var(--line);margin-bottom:8px}
+.tbl2{border-collapse:collapse;font-size:.92rem;margin:6px 0}.tbl2 th,.tbl2 td{border:1px solid var(--line);padding:3px 10px;text-align:left}.tbl2 th{background:var(--soft)}
+.foot{margin-top:24px;color:var(--graphite);font-size:.88rem}
+</style>
+</head>
+<body>
+<div class="wrap">
+<a class="back" href="index.html">← DTI232 เข้าใจอัลกอริทึม (หน้าแรก)</a>
+<h1>กำหนดการพลวัต (DP) ลองเล่น</h1>
+<p class="lead">ตามเนื้อหาสัปดาห์ 7–8: ตารางกระเป๋า (ชุดซ่อมฉุกเฉิน) และการทอนเงิน กดไล่ทีละช่อง ดูว่าแต่ละช่องมาจากช่องไหน แล้วเปลี่ยนตัวเลขเองได้</p>
+
+<div class="steps3">
+  <div class="card"><b class="n">1</b><b>นิยามหนึ่งช่องเป็นประโยค</b><br>เช่น F[x] = จำนวนเหรียญน้อยสุดที่รวมได้ x บาท</div>
+  <div class="card"><b class="n">2</b><b>ลองทุกทางเลือกของช่องนั้น</b><br>แต่ละทางไปอ่านค่าจากช่องที่เล็กกว่า (ที่เติมไว้แล้ว) แล้วเก็บทางที่ดีสุด</div>
+  <div class="card"><b class="n">3</b><b>เติมจากกรณีฐานขึ้นไป</b><br>แล้วย้อนรอยหาว่าเลือกอะไรบ้าง</div>
+</div>
+
+<div class="tabs" role="tablist">
+  <button role="tab" aria-selected="true" data-t="coin">ทอนเงิน (คำถามท้ายคาบ)</button>
+  <button role="tab" aria-selected="false" data-t="knap">ตารางกระเป๋า (ชุดซ่อม)</button>
+  <button role="tab" aria-selected="false" data-t="work">ใบงาน 10 ข้อ พร้อมเฉลย</button>
+  <button role="tab" aria-selected="false" data-t="ram">โค้ดแบบ RAM</button>
+</div>
+
+<!-- ================= COIN ================= -->
+<section class="panel on card" id="coin">
+  <h2>ทอนเงิน: เหรียญแต่ละแบบใช้ได้ไม่จำกัด ใช้เหรียญน้อยที่สุด</h2>
+  <p class="lead" style="margin-bottom:8px">คำถามท้ายคาบ: ทอน 6 บาทด้วย {1, 3, 4} เปรียบเทียบวิธีละโมบกับวิธีจดคำตอบย่อย</p>
+  <div class="bar">
+    <label class="f">เหรียญ <input type="text" id="cCoins" value="1,3,4" size="12" aria-label="มูลค่าเหรียญคั่นด้วยจุลภาค"></label>
+    <label class="f">ยอดเงิน <input type="number" id="cAmt" value="6" min="1" max="30"></label>
+    <button class="btn" id="cApply">ใช้ค่านี้</button>
+    <button class="btn" data-pre="1,3,4|6">1,3,4 ยอด 6</button>
+    <button class="btn" data-pre="1,3,4|10">1,3,4 ยอด 10</button>
+    <button class="btn" data-pre="1,3,4|7">1,3,4 ยอด 7</button>
+    <button class="btn" data-pre="1,2,5,10|18">1,2,5,10 ยอด 18</button>
+  </div>
+  <div class="err" id="cErr"></div>
+  <div class="bar">
+    <button class="btn" id="cPrev">◀ ย้อน</button>
+    <button class="btn main" id="cNext">ถัดไป ▶</button>
+    <button class="btn" id="cPlay">▶▶ เล่นอัตโนมัติ</button>
+    <button class="btn" id="cEnd">ข้ามไปจบ ⏭</button>
+    <button class="btn" id="cReset">⏮ เริ่มใหม่</button>
+    <span class="sp"></span><span class="note" id="cProg"></span>
+  </div>
+  <div class="say" id="cSay" aria-live="polite"></div>
+  <div class="scroll"><table class="t" id="cTbl" aria-label="ตาราง F ของจำนวนเหรียญ"></table></div>
+  <p class="note">สีฟ้าประ = ช่องที่กำลังอ่านค่า · เหลือง = ช่องที่กำลังคำนวณ · เขียว = เติมแล้ว (กดช่องที่เติมแล้วเพื่อกระโดดไปดู)</p>
+  <div class="res" id="cRes" hidden></div>
+</section>
+
+<!-- ================= KNAP ================= -->
+<section class="panel card" id="knap">
+  <h2>ตารางกระเป๋า: เลือกของให้ประโยชน์สูงสุด หยิบแต่ละชิ้นได้ครั้งเดียว</h2>
+  <p class="lead" style="margin-bottom:8px">F[i, w] = ประโยชน์มากสุด เมื่อใช้ได้เฉพาะของ i ชิ้นแรก และรับน้ำหนักได้ไม่เกิน w</p>
+  <div class="bar" style="align-items:flex-start">
+    <table class="items" id="kItems" aria-label="รายการของ"></table>
+    <div>
+      <label class="f">ความจุ C <input type="number" id="kCap" value="7" min="1" max="12"></label>
+      <div class="bar" style="margin-top:6px"><button class="btn" id="kAdd">+ เพิ่มของ</button><button class="btn" id="kDel">− ลบชิ้นสุดท้าย</button></div>
+      <div class="bar"><button class="btn main" id="kApply">ใช้ค่านี้</button><button class="btn" id="kBook">ตัวอย่างในหนังสือ</button><button class="btn" id="kTrap">ตัวอย่างที่ละโมบแพ้</button></div>
+    </div>
+  </div>
+  <div class="err" id="kErr"></div>
+  <div class="bar">
+    <button class="btn" id="kPrev">◀ ย้อน</button>
+    <button class="btn main" id="kNext">ถัดไป ▶</button>
+    <button class="btn" id="kPlay">▶▶ เล่นอัตโนมัติ</button>
+    <button class="btn" id="kEnd">ข้ามไปจบ ⏭</button>
+    <button class="btn" id="kReset">⏮ เริ่มใหม่</button>
+    <span class="sp"></span><span class="note" id="kProg"></span>
+  </div>
+  <div class="say" id="kSay" aria-live="polite"></div>
+  <div class="scroll"><table class="t" id="kTbl" aria-label="ตาราง F[i,w]"></table></div>
+  <p class="note">เหลือง = ช่องที่กำลังคำนวณ · ฟ้าประ = ทางไม่เอา (ช่องข้างบน) · ส้มประ = ทางเอา (ช่องข้างบน ซ้ายไป wᵢ) · กดช่องที่เติมแล้วเพื่ออ่านความหมายเป็นประโยค</p>
+  <div class="card" style="margin:10px 0 0" id="kRead" hidden></div>
+  <div class="bar" style="margin-top:10px"><button class="btn main" id="kBack" disabled>ย้อนรอยหาว่าหยิบอะไร</button></div>
+  <div class="res" id="kRes" hidden></div>
+</section>
+
+<!-- ================= WORKBOOK ================= -->
+<section class="panel card" id="work">
+  <h2>ใบงาน 10 ข้อ ลองทำบนกระดาษก่อน แล้วเปิดเฉลย</h2>
+  <p class="lead">ลำดับการเขียนที่อาจารย์ให้: คำถามเป็นภาษาคน → หน่วยข้อมูล → ตัวเลือกพร้อมตัวเลข → ผลที่เก็บ → เหตุผลตรวจสอบ ข้อความโจทย์ย่อมาจากใบงานของอาจารย์ เฉลยเขียนเองและตรวจด้วยโปรแกรมแล้ว ถ้าต่างจากที่อาจารย์เฉลย ให้ยึดอาจารย์</p>
+  <div id="wList"></div>
+</section>
+
+<!-- ================= RAM ================= -->
+<section class="panel card" id="ram">
+  <h2>เขียนเป็นโค้ดแบบ RAM</h2>
+  <p class="lead">ในสไลด์ อาร์เรย์เริ่มที่ 1 แต่ตารางในหนังสือเริ่มที่ 0 จึงเลื่อนที่อยู่ไป +1 เช่น F[3,7] เก็บที่ M[4][8] และ F[x] เก็บที่ Count[x+1]</p>
+  <h3>กระเป๋า (F[i,w])</h3>
+<pre class="code">declare W[1..n], V[1..n], M[1..n+1][1..C+1]
+declare i, capacity, j, itemWeight, itemValue, skip, take
+for j ← 1 to C+1
+    M[1][j] ← 0
+for i ← 1 to n
+    itemWeight ← W[i]
+    itemValue ← V[i]
+    for capacity ← 0 to C
+        skip ← M[i][capacity+1]
+        if itemWeight ≤ capacity then
+            take ← itemValue + M[i][capacity-itemWeight+1]
+            if take > skip then skip ← take
+        M[i+1][capacity+1] ← skip
+return M[n+1][C+1]</pre>
+  <p>ตาม trace หนึ่งช่อง i = 4, capacity = 7 (D = (5,7)): อ่าน W[4] = 5, V[4] = 7 · อ่าน skip = M[4][8] = 9 · เทียบ 5 ≤ 7 จริง · อ่าน M[4][3] = 1 แล้วคำนวณ take = 7 + 1 = 8 · เทียบ 8 &gt; 9 เท็จ · เขียน M[5][8] ← 9 งานคงที่ต่อช่อง (read, arithmetic, comparison, write) ตาราง (n+1)(C+1) ช่อง จึงใช้เวลาและพื้นที่ Θ(nC) เป็นเวลาพหุนามเทียม เพราะ C คือค่าตัวเลข ไม่ใช่จำนวนบิต</p>
+  <h3 style="margin-top:14px">ทอนเงิน (F[x])</h3>
+<pre class="code">declare Coins[1..k], Count[1..Amount+1], Last[1..Amount+1]
+declare x, j, coinValue, candidate, best, chosenCoin
+Count[1] ← 0
+for x ← 1 to Amount
+    best ← Amount+1
+    chosenCoin ← 0
+    for j ← 1 to k
+        coinValue ← Coins[j]
+        if coinValue ≤ x then
+            candidate ← 1 + Count[x-coinValue+1]
+            if candidate &lt; best then
+                best ← candidate
+                chosenCoin ← coinValue
+    Count[x+1] ← best
+    Last[x+1] ← chosenCoin
+return Count[Amount+1]</pre>
+  <p class="note">โค้ดนี้ใส่บรรทัด <code>chosenCoin ← coinValue</code> เองให้ครบ (ในสไลด์ของอาจารย์ที่ผมอ่านได้ไม่เห็นบรรทัดนี้ แต่ต้องมี ไม่งั้น Last จะเป็น 0 ตลอด) และสมมติว่ามูลค่าเป็นจำนวนเต็มบวกพร้อมเหรียญ 1 จึงทอนได้ทุกยอด</p>
+  <p>trace ยอด 7: best = 11 · เหรียญ 1: Count[7] = F[6] = 2 → candidate 3 → best = 3 · เหรียญ 3: Count[5] = F[4] = 1 → candidate 2 → best = 2, chosenCoin = 3 · เหรียญ 4: Count[4] = F[3] = 1 → candidate 2 ไม่น้อยกว่า 2 จึงไม่เปลี่ยน · เขียน Count[8] ← 2 และ Last[8] ← 3 (2 คือจำนวนเหรียญ ส่วน 3 คือมูลค่าเหรียญ)</p>
+  <p>ย้อนคำตอบ: <code>remaining ← Amount; while remaining &gt; 0: coinValue ← Last[remaining+1]; output coinValue; remaining ← remaining − coinValue</code> ลดยอดด้วยมูลค่าเหรียญ ไม่ใช่ลดทีละ 1 เวลาเติมตาราง Θ(Amount × k) พื้นที่ Θ(Amount)</p>
+</section>
+
+<div class="foot">เนื้อหาเรียบเรียงจากหนังสือบท 7 น.37–39 / บท 8 น.40–42 และสไลด์ DP I, DP II ของอาจารย์ ตัวอย่างและโปรแกรมทำขึ้นเอง ไม่ได้อัปโหลดไฟล์ต้นฉบับ</div>
+</div>
+
+<script>
+const INF=Infinity,$=id=>document.getElementById(id);
+const fm=v=>v===INF?'∞':String(v);
+/* ---------------- engines ---------------- */
+function coinSim(coins,amount){
+  coins=[...new Set(coins)].filter(c=>Number.isInteger(c)&&c>0).sort((a,b)=>a-b);
+  const F=[0],last=[0],opts=[null];
+  for(let x=1;x<=amount;x++){
+    const o=coins.map(c=>c<=x?{c,rem:x-c,val:1+F[x-c]}:{c,rem:null,val:null});
+    let best=INF,ch=0;
+    o.forEach(e=>{if(e.val!==null&&e.val<best){best=e.val;ch=e.c}});
+    F[x]=best;last[x]=ch;opts[x]=o;
+  }
+  return{coins,amount,F,last,opts};
+}
+function coinGreedy(coins,amount){
+  const d=[...coins].sort((a,b)=>b-a);let r=amount;const out=[];
+  for(const c of d){while(r>=c){out.push(c);r-=c}}
+  return{coins:out,ok:r===0};
+}
+function coinBack(S){
+  if(S.F[S.amount]===INF)return null;
+  const out=[];let x=S.amount;while(x>0){const c=S.last[x];out.push(c);x-=c}return out;
+}
+function knapSim(items,C){
+  const n=items.length,F=Array.from({length:n+1},()=>Array(C+1).fill(0)),cells=[];
+  for(let i=1;i<=n;i++)for(let w=0;w<=C;w++){
+    const wi=items[i-1].w,vi=items[i-1].v,skip=F[i-1][w];
+    const take=wi<=w?vi+F[i-1][w-wi]:null;
+    const took=take!==null&&take>skip;
+    const val=took?take:skip;F[i][w]=val;cells.push({i,w,skip,take,val,took});
+  }
+  return{F,cells,n,C,items};
+}
+function knapBack(S){
+  let i=S.n,w=S.C;const picks=[],path=[[i,w]];
+  while(i>0){
+    if(S.F[i][w]!==S.F[i-1][w]){picks.push(i);w-=S.items[i-1].w}
+    i--;path.push([i,w]);
+  }
+  return{picks:picks.reverse(),path};
+}
+const NM=i=>String.fromCharCode(64+i);
+function knapBrute(S){ // best by trying every subset (check)
+  let best=0;for(let m=0;m<(1<<S.n);m++){let w=0,v=0;for(let i=0;i<S.n;i++)if(m>>i&1){w+=S.items[i].w;v+=S.items[i].v}if(w<=S.C&&v>best)best=v}return best;
+}
+
+/* ---------------- tabs ---------------- */
+let timers={};
+function stopAll(){Object.values(timers).forEach(t=>clearInterval(t));timers={};$('cPlay').textContent='▶▶ เล่นอัตโนมัติ';$('kPlay').textContent='▶▶ เล่นอัตโนมัติ'}
+document.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{
+  stopAll();
+  document.querySelectorAll('[data-t]').forEach(x=>x.setAttribute('aria-selected',x===b));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('on',p.id===b.dataset.t));
+});
+function player(prefix,getMax,step,render){
+  const btn=s=>$(prefix+s);
+  const api={cur:0,go(n){api.cur=Math.max(0,Math.min(getMax(),n));render()},
+    next(){if(api.cur<getMax()){api.go(api.cur+1);return true}return false}};
+  btn('Next').onclick=()=>api.next();
+  btn('Prev').onclick=()=>{stopAll();api.go(api.cur-1)};
+  btn('Reset').onclick=()=>{stopAll();api.go(0)};
+  btn('End').onclick=()=>{stopAll();api.go(getMax())};
+  btn('Play').onclick=()=>{
+    if(timers[prefix]){stopAll();return}
+    if(api.cur>=getMax())api.go(0);
+    btn('Play').textContent='⏸ หยุด';
+    timers[prefix]=setInterval(()=>{if(!api.next()){stopAll()}},900);
+  };
+  return api;
+}
+
+/* ---------------- COIN UI ---------------- */
+let CS,CP;
+function parseCoins(){
+  const raw=$('cCoins').value.split(/[,\s]+/).filter(Boolean).map(Number);
+  const amt=Number($('cAmt').value);
+  if(!raw.length||raw.some(c=>!Number.isInteger(c)||c<1||c>50))return{err:'เหรียญต้องเป็นจำนวนเต็มบวกไม่เกิน 50 คั่นด้วยจุลภาค เช่น 1,3,4'};
+  if(new Set(raw).size>6)return{err:'ใส่เหรียญได้ไม่เกิน 6 ชนิด'};
+  if(!Number.isInteger(amt)||amt<1||amt>30)return{err:'ยอดเงินต้องเป็นจำนวนเต็ม 1–30'};
+  return{coins:raw,amt};
+}
+function coinApply(){
+  const p=parseCoins();$('cErr').textContent=p.err||'';if(p.err)return;
+  stopAll();CS=coinSim(p.coins,p.amt);CP.go(0);
+}
+function coinRender(){
+  const S=CS,cur=CP.cur;
+  $('cProg').textContent=`ช่อง x = ${cur} จาก ${S.amount}`;
+  $('cPrev').disabled=cur===0;$('cNext').disabled=$('cEnd').disabled=cur===S.amount;
+  const reading=new Set();
+  if(cur>0)S.opts[cur].forEach(o=>{if(o.rem!==null)reading.add(o.rem)});
+  let h='<tr><th class="rl">ยอด x (บาท)</th>';
+  for(let x=0;x<=S.amount;x++)h+=`<th>${x}</th>`;
+  h+='</tr><tr><th class="rl">F[x] จำนวนเหรียญ</th>';
+  for(let x=0;x<=S.amount;x++){
+    let c=x>cur?'c-fut':(x===cur?'c-cur':(reading.has(x)?'c-read':'c-fill'));
+    h+=`<td class="${c}${x<cur?' click':''}" data-x="${x}">${x>cur?'?':fm(S.F[x])}</td>`}
+  h+='</tr><tr><th class="rl">เหรียญสุดท้ายที่เลือก</th>';
+  for(let x=0;x<=S.amount;x++)h+=`<td class="${x>cur?'c-fut':''}">${x>cur?'':(x===0?'–':(S.last[x]||'–'))}</td>`;
+  h+='</tr>';$('cTbl').innerHTML=h;
+  $('cTbl').querySelectorAll('td.click').forEach(td=>td.onclick=()=>{stopAll();CP.go(+td.dataset.x)});
+  let say;
+  if(cur===0){
+    say=`<span class="tag">กรณีฐาน</span><p><b>F[0] = 0</b> ถ้ายอดเป็น 0 ไม่ต้องหยิบเหรียญเลย จึงใช้ 0 เหรียญ ช่องอื่นเริ่มจากช่องนี้แล้วเติมจากน้อยไปมาก กด "ถัดไป" เพื่อคำนวณ F[1]</p>`;
+  }else{
+    const o=S.opts[cur],best=S.F[cur];
+    let tb=`<table class="opt"><tr><th>เหรียญสุดท้าย</th><th>ยอดที่เหลือ</th><th>เหรียญรวม = 1 + F[เหลือ]</th></tr>`;
+    let marked=false;
+    o.forEach(e=>{
+      if(e.rem===null)tb+=`<tr><td>${e.c}</td><td colspan="2" class="note">ใหญ่กว่า ${cur} ใช้ไม่ได้ (ยอดเหลือติดลบ)</td></tr>`;
+      else{const win=!marked&&e.val===best;if(win)marked=true;tb+=`<tr class="${win?'win':''}"><td>${e.c}</td><td>${cur}−${e.c} = ${e.rem}</td><td>1 + F[${e.rem}] = 1 + ${fm(S.F[e.rem])} = ${fm(e.val)}</td></tr>`}
+    });
+    tb+='</table>';
+    const why=best===INF?'ไม่มีเหรียญที่ใช้ได้ ทอนยอดนี้ไม่ได้ (F = ∞)':`ค่าน้อยสุดคือ <b>${best}</b> จึงเก็บ F[${cur}] = ${best} และจำเหรียญสุดท้ายเป็น ${S.last[cur]} (ถ้าเสมอกัน เก็บทางที่ลองก่อน)`;
+    say=`<span class="tag">คำนวณ F[${cur}]</span><p>หาจำนวนเหรียญน้อยสุดที่รวมได้ ${cur} บาท: ลองเหรียญสุดท้ายแต่ละชนิด แล้วไปอ่านคำตอบของยอดที่เหลือ (ช่องสีฟ้า) บวกอีก 1 เหรียญ</p>${tb}<p>${why}</p>`;
+  }
+  $('cSay').innerHTML=say;
+  const res=$('cRes');
+  if(cur===S.amount&&S.amount>0){
+    const dp=coinBack(S),g=coinGreedy(S.coins,S.amount);
+    let h2=`<h3>ผล: ทอน ${S.amount} บาทด้วย {${S.coins.join(', ')}}</h3>`;
+    if(!dp)h2+='<p>ทอนไม่ได้ (F = ∞)</p>';
+    else{
+      let x=S.amount,ch=`<span class="chip">${x}</span>`;
+      dp.forEach(c=>{x-=c;ch+=` <span class="chip coin">−${c}</span> <span class="chip">${x}</span>`});
+      h2+=`<p><b>วิธีจดคำตอบย่อย (DP):</b> ${S.F[S.amount]} เหรียญ = ${dp.join(' + ')}</p><div class="chips">${ch}</div><p class="note">ย้อนจากยอด ${S.amount}: ดูเหรียญที่จำไว้ในช่อง แล้วลดยอดด้วยมูลค่าเหรียญนั้น จนถึง 0</p>`;
+    }
+    h2+=`<p><b>วิธีละโมบ:</b> หยิบเหรียญใหญ่สุดที่ไม่เกินยอดคงเหลือซ้ำ ๆ → ${g.ok?g.coins.join(' + ')+' = '+g.coins.length+' เหรียญ':'ทอนไม่ครบ'}</p>`;
+    if(dp&&(!g.ok||g.coins.length>dp.length))h2+=`<p class="bad">ละโมบแพ้: ได้ ${g.ok?g.coins.length:'—'} เหรียญ แต่ DP ได้ ${S.F[S.amount]} เหรียญ ตัวอย่างนี้ใช้หักล้างว่ากฎ "เลือกเหรียญใหญ่สุด" ไม่ถูกเสมอไป</p>`;
+    else if(dp)h2+=`<p class="ok">ยอดนี้ละโมบได้คำตอบดีที่สุดเท่ากัน แต่ยอดอื่นหรือเหรียญชุดอื่นอาจไม่ใช่ ยอดเดียวไม่พอสรุปว่าละโมบถูก</p>`;
+    h2+=`<p class="note">เวลา Θ(ยอด × จำนวนชนิดเหรียญ) = ${S.amount} × ${S.coins.length} ครั้งที่ลองเงื่อนไข · พื้นที่ Θ(ยอด) · ละโมบใช้เวลาน้อยกว่ามากแต่ไม่รับประกันคำตอบดีที่สุด</p>`;
+    res.innerHTML=h2;res.hidden=false;
+  }else res.hidden=true;
+}
+CP=player('c',()=>CS.amount,null,coinRender);
+$('cApply').onclick=coinApply;
+document.querySelectorAll('[data-pre]').forEach(b=>b.onclick=()=>{const [c,a]=b.dataset.pre.split('|');$('cCoins').value=c;$('cAmt').value=a;coinApply()});
+
+/* ---------------- KNAP UI ---------------- */
+let KS,KP,KItems=[{w:1,v:1},{w:3,v:4},{w:4,v:5},{w:5,v:7}];
+function drawItems(){
+  let h='<tr><th>ของ</th><th>น้ำหนัก wᵢ</th><th>ประโยชน์ vᵢ</th></tr>';
+  KItems.forEach((it,i)=>{h+=`<tr><td>${NM(i+1)}</td><td><input type="number" min="1" max="12" value="${it.w}" data-k="w" data-i="${i}" aria-label="น้ำหนัก ${NM(i+1)}"></td><td><input type="number" min="1" max="99" value="${it.v}" data-k="v" data-i="${i}" aria-label="ประโยชน์ ${NM(i+1)}"></td></tr>`});
+  $('kItems').innerHTML=h;
+}
+function kApply(){
+  const items=KItems.map((it,i)=>({w:Number($('kItems').querySelector(`[data-k=w][data-i="${i}"]`).value),v:Number($('kItems').querySelector(`[data-k=v][data-i="${i}"]`).value)}));
+  const C=Number($('kCap').value);
+  if(items.some(t=>!Number.isInteger(t.w)||t.w<1||t.w>12||!Number.isInteger(t.v)||t.v<1||t.v>99)||!Number.isInteger(C)||C<1||C>12){$('kErr').textContent='น้ำหนักและความจุเป็นจำนวนเต็ม 1–12 ประโยชน์ 1–99';return}
+  $('kErr').textContent='';stopAll();KItems=items;KS=knapSim(items,C);$('kRead').hidden=true;$('kRes').hidden=true;KBackPath=null;KP.go(0);
+}
+let KBackPath=null,KPick=null;
+function kRender(){
+  const S=KS,cur=KP.cur,total=S.cells.length;
+  $('kProg').textContent=`ช่องที่ ${cur} จาก ${total}`;
+  $('kPrev').disabled=cur===0;$('kNext').disabled=$('kEnd').disabled=cur===total;
+  $('kBack').disabled=cur<total;
+  const focus=cur>0?S.cells[cur-1]:null;
+  if(cur<total)KBackPath=null;
+  const pathSet=new Set((KBackPath||[]).map(p=>p.join(',')));
+  let h='<tr><th class="rl">ของที่ใช้ได้ \\ w</th>';
+  for(let w=0;w<=S.C;w++)h+=`<th>${w}</th>`;h+='</tr>';
+  for(let i=0;i<=S.n;i++){
+    h+=`<tr><th class="rl">${i===0?'ไม่มี':Array.from({length:i},(_,k)=>NM(k+1)).join(',')}</th>`;
+    for(let w=0;w<=S.C;w++){
+      let c,txt;
+      if(i===0){c='c-fill';txt=0}
+      else{
+        const idx=(i-1)*(S.C+1)+w;
+        if(idx>=cur){c='c-fut';txt='?'}
+        else{c='c-fill click';txt=S.F[i][w]}
+        if(focus&&focus.i===i&&focus.w===w)c='c-cur';
+        else if(focus&&focus.i-1===i&&focus.w===w)c='c-read';
+        else if(focus&&focus.take!==null&&focus.i-1===i&&focus.w-S.items[focus.i-1].w===w)c='c-read2';
+      }
+      if(pathSet.has(i+','+w))c+=' c-path';
+      h+=`<td class="${c}" data-i="${i}" data-w="${w}">${txt}</td>`;
+    }
+    h+='</tr>';
+  }
+  $('kTbl').innerHTML=h;
+  $('kTbl').querySelectorAll('td.click').forEach(td=>td.onclick=()=>{kShowCell(+td.dataset.i,+td.dataset.w)});
+  let say;
+  if(!focus)say=`<span class="tag">กรณีฐาน</span><p>แถวบนสุด "ไม่มีของให้เลือก" ทุกช่องเป็น 0 เพราะไม่มีอะไรให้หยิบ ต่อไปเติมทีละแถว ทีละคอลัมน์ w = 0..${S.C} กด "ถัดไป" เพื่อคำนวณ F[1,0]</p>`;
+  else{
+    const {i,w,skip,take,val,took}=focus,it=S.items[i-1],nm=NM(i);
+    const used=Array.from({length:i},(_,k)=>NM(k+1)).join(',');
+    let body=`<p>F[${i},${w}] = ประโยชน์มากสุดที่ได้จากของ ${used} เมื่อรับน้ำหนักไม่เกิน ${w}. ชิ้นใหม่คือ <b>${nm}</b> (หนัก ${it.w}, ได้ ${it.v})</p><div class="two">`;
+    body+=`<div class="${!took?'win':''}"><b>ไม่เอา ${nm}</b><br>ความจุเท่าเดิม ใช้คำตอบแถวบน<br>F[${i-1},${w}] = <b>${skip}</b></div>`;
+    if(take===null)body+=`<div><b>เอา ${nm}</b><br>ใส่ไม่ได้ เพราะ ${it.w} &gt; ${w} (เพดานน้อยกว่าน้ำหนักชิ้นนี้)</div>`;
+    else body+=`<div class="${took?'win':''}"><b>เอา ${nm}</b><br>เหลือ ${w}−${it.w} = ${w-it.w} ใช้ F[${i-1},${w-it.w}] = ${take-it.v}<br>รวม ${it.v} + ${take-it.v} = <b>${take}</b></div>`;
+    body+=`</div><p>${take===null?`เหลือทางเดียว F[${i},${w}] = ${val}`:`เลือกค่ามากกว่า: max(${skip}, ${take}) = <b>${val}</b>${take===skip?' (เท่ากัน ถือว่าไม่เอา)':''}`}</p>`;
+    say=`<span class="tag">คำนวณ F[${i},${w}]</span>${body}`;
+  }
+  $('kSay').innerHTML=say;
+  if(cur<total){$('kRes').hidden=true}
+}
+function kShowCell(i,w){
+  const S=KS,used=Array.from({length:i},(_,k)=>NM(k+1)).join(',');
+  const d=$('kRead');d.hidden=false;
+  d.innerHTML=`<b>F[${i},${w}] = ${S.F[i][w]}</b><br>อ่านเป็นประโยค: "ใช้ได้เฉพาะ ${used} รับน้ำหนักไม่เกิน ${w} ได้ประโยชน์สูงสุด ${S.F[i][w]}" (i คือจำนวนของที่<b>พิจารณา</b> ไม่ใช่จำนวนที่หยิบ และ ${S.F[i][w]} คือคะแนน ไม่ใช่น้ำหนัก)`;
+}
+$('kBack').onclick=()=>{
+  const S=KS,b=knapBack(S);KBackPath=b.path;kRender();
+  const names=b.picks.map(NM),W=b.picks.reduce((s,i)=>s+S.items[i-1].w,0),V=b.picks.reduce((s,i)=>s+S.items[i-1].v,0);
+  let steps='';let i=S.n,w=S.C;
+  while(i>0){const same=S.F[i][w]===S.F[i-1][w];steps+=`<li>F[${i},${w}] = ${S.F[i][w]} ${same?'=':'≠'} F[${i-1},${w}] = ${S.F[i-1][w]} → ${same?`ข้าม ${NM(i)}`:`<b>เอา ${NM(i)}</b> เหลือ ${w}−${S.items[i-1].w} = ${w-S.items[i-1].w}`}</li>`;if(!same)w-=S.items[i-1].w;i--}
+  $('kRes').hidden=false;
+  $('kRes').innerHTML=`<h3>ผล: F[${S.n},${S.C}] = ${S.F[S.n][S.C]}</h3><p>หยิบ <b>${names.length?names.join(' + '):'ไม่หยิบอะไร'}</b> น้ำหนักรวม ${W} (≤ ${S.C}) ประโยชน์รวม ${V}</p><p>ย้อนรอยจากมุมขวาล่าง (ช่องเขียวในตาราง): ถ้าค่าเท่าช่องข้างบน แปลว่าไม่ต้องใช้ชิ้นนี้ ถ้ามากกว่า แปลว่าต้องเอา</p><ol>${steps}</ol>${V===knapBrute(S)?'<p class="note">ตรวจด้วยการลองครบทุกชุด ได้ค่าเท่ากัน</p>':''}<p class="note">เวลาและพื้นที่ Θ(nC) = ${S.n} × ${S.C} ครั้งอัปเดต (ตารางมี ${(S.n+1)*(S.C+1)} ช่อง) · ลองทุกชุดต้องดู 2<sup>${S.n}</sup> = ${2**S.n} ชุด</p>`;
+};
+KP=player('k',()=>KS.cells.length,null,kRender);
+$('kApply').onclick=kApply;
+$('kAdd').onclick=()=>{if(KItems.length<6){KItems.push({w:2,v:3});drawItems()}};
+$('kDel').onclick=()=>{if(KItems.length>1){KItems.pop();drawItems()}};
+$('kBook').onclick=()=>{KItems=[{w:1,v:1},{w:3,v:4},{w:4,v:5},{w:5,v:7}];$('kCap').value=7;drawItems();kApply()};
+$('kTrap').onclick=()=>{KItems=[{w:5,v:7},{w:3,v:4},{w:4,v:5},{w:1,v:1}];$('kCap').value=7;drawItems();kApply()};
+
+/* ---------------- WORKBOOK ---------------- */
+const CS7=coinSim([1,3,4],10);
+const WB=[
+ ['ใบงาน 1 · เป้าหมาย ข้อจำกัด และหน่วย','รถรับได้ 5 หน่วย ของ A=(1,1), B=(3,4), C=(4,5), D=(5,7) อย่างละชิ้น แจกแจงชุดที่ทำได้แล้วเลือกชุดคะแนนสูงสุด อธิบายว่าทำไม B+C ใช้ไม่ได้',
+  `<table class="tbl2"><tr><th>ชุด</th><th>น้ำหนัก</th><th>คะแนน</th></tr><tr><td>ว่าง</td><td>0</td><td>0</td></tr><tr><td>A</td><td>1</td><td>1</td></tr><tr><td>B</td><td>3</td><td>4</td></tr><tr><td>C</td><td>4</td><td>5</td></tr><tr><td>D</td><td>5</td><td>7</td></tr><tr><td>A+B</td><td>4</td><td>5</td></tr><tr><td>A+C</td><td>5</td><td>6</td></tr></table><p>ชุดอื่นหนักเกิน 5 (เช่น A+D = 6, B+C = 7) ชุดที่ดีที่สุดคือ <b>D เดี่ยว ได้ 7 คะแนน</b> B+C หนัก 3+4 = 7 เกินเพดาน 5 จึงใช้ไม่ได้ แม้ได้ 9 คะแนน ต้องแยกสองเรื่อง: ใช้ได้ไหม (ไม่เกินความจุ) กับคุ้มไหม (คะแนนสูง) คำตอบเปลี่ยนตามความจุ จึงต้องระบุความจุในคำถามเสมอ</p>`],
+ ['ใบงาน 2 · อ่านสถานะ','อธิบาย F[2,3] และ F[3,4] เป็นประโยคเต็มพร้อมชุดของจริง และ i ต่างจากจำนวนชิ้นที่หยิบอย่างไร',
+  `<p><b>F[2,3] = 4:</b> ใช้ได้เฉพาะ A,B รับน้ำหนักไม่เกิน 3 ได้คะแนนสูงสุด 4 ด้วย B ชิ้นเดียว (A+B หนัก 4 เกิน 3)</p><p><b>F[3,4] = 5:</b> ใช้ได้เฉพาะ A,B,C รับไม่เกิน 4 ได้สูงสุด 5 ด้วย C เดี่ยว หรือ A+B ก็ได้ 5 เท่ากัน (คำตอบที่ดีที่สุดมีหลายชุดได้ แต่ช่องเก็บค่าเดียว)</p><p><b>i</b> คือจำนวนของแรก ๆ ที่ <i>อนุญาตให้พิจารณา</i> ไม่ใช่จำนวนที่หยิบ เช่น i = 3 ไม่ได้บังคับให้หยิบ 3 ชิ้น</p>`],
+ ['ใบงาน 3 · คำนวณหนึ่งช่อง','คำนวณ F[4,6] โดยแสดงไม่เอา D / เอา D / ความจุที่เหลือ / คะแนนที่เก็บ ให้ F[3,6]=6 และ F[3,1]=1',
+  `<p>ไม่เอา D: F[3,6] = <b>6</b><br>เอา D (หนัก 5): เหลือ 6−5 = 1 ใช้ F[3,1] = 1 รวม 7 + 1 = <b>8</b><br>เลือกค่ามาก: max(6, 8) = <b>8</b> จึงเก็บ F[4,6] = 8</p>`],
+ ['ใบงาน 4 · ย้อนคำตอบและ RAM','ย้อนจาก F[4,6]=8 ให้ได้ชุดของจริง แล้ว trace การเขียนช่อง F[4,7] ลง RAM แยก read, comparison, write',
+  `<p><b>ย้อน:</b> F[4,6] = 8 ≠ F[3,6] = 6 → เอา D เหลือ 1 · F[3,1] = 1 = F[2,1] → ข้าม C · F[2,1] = 1 = F[1,1] → ข้าม B · F[1,1] = 1 ≠ F[0,1] = 0 → เอา A เหลือ 0 ได้ <b>A + D</b> หนัก 1+5 = 6 ได้ 1+7 = 8 ตรงกับตาราง</p><p><b>trace F[4,7] (i = 4, capacity = 7):</b></p><table class="tbl2"><tr><th>ชนิดงาน</th><th>ทำอะไร</th></tr><tr><td>read</td><td>อ่าน W[4] = 5, V[4] = 7</td></tr><tr><td>read</td><td>skip ← M[4][8] = 9</td></tr><tr><td>comparison</td><td>5 ≤ 7 จริง</td></tr><tr><td>read + arithmetic</td><td>อ่าน M[4][3] = 1 แล้ว take ← 7 + 1 = 8</td></tr><tr><td>comparison</td><td>8 &gt; 9 เท็จ จึงไม่เปลี่ยน skip</td></tr><tr><td>write</td><td>M[5][8] ← 9</td></tr></table>`],
+ ['ใบงาน 5 · เลือกแบบจำลองจากโลกจริง','ชมรมงบ 5: A=(2,4), B=(3,5), C=(5,8) เลือกกิจกรรม ระบุต้นทุนรวมและคะแนนรวม แล้วอธิบาย P และ T ของปัญหาร้านของขวัญเดิม',
+  `<p>A+B: ต้นทุน 2+3 = 5 (พอดีงบ) ได้ 4+5 = <b>9</b> ส่วน C เดี่ยว ต้นทุน 5 ได้ 8 จึงเลือก <b>A+B</b></p><p>ร้านของขวัญเดิม: <b>P</b> คือรายการราคา (เช่น P = [8, 6, 5, 3]) และ <b>T</b> คือยอดเป้าหมายที่ต้องการพอดี (เช่น T = 11) คำถามคือ "ทำยอดได้พอดีหรือไม่" ตอบ true/false เช่น 6+5 = 11 ได้ ต่างจากชมรมที่ถามว่า "ได้คะแนนมากสุดเท่าไร" ต้องแยกให้ออกก่อนว่าถามแบบ ได้หรือไม่ / มากที่สุด / น้อยที่สุด</p>`],
+ ['ใบงาน 6 · ละโมบกับคำตอบดีที่สุด','ทอน 10 บาทด้วย 1,3,4: เขียนคำตอบละโมบ ชุดที่ดีกว่า และเหตุผลว่าทำด้วย 2 เหรียญไม่ได้',
+  `<p>ละโมบ: 4 + 4 + 1 + 1 = 10 ใช้ <b>4 เหรียญ</b> (4 → เหลือ 6 → 4 → เหลือ 2 → 1 → 1)<br>ชุดที่ดีกว่า: <b>4 + 3 + 3 = 10 ใช้ 3 เหรียญ</b></p><p>ทำด้วย 2 เหรียญไม่ได้ เพราะสองเหรียญรวมได้มากสุด 4+4 = 8 &lt; 10 จึงพิสูจน์ได้ว่า 3 เหรียญคือต่ำสุด</p>`],
+ ['ใบงาน 7 · จำนวนเหรียญในหนึ่งช่อง','ให้ F[6]=2, F[4]=1, F[3]=1 คำนวณ F[7] ทุกทาง และอธิบายว่าทำไม F[2] ไม่ใช้เหรียญ 3 หรือ 4',
+  `<table class="tbl2"><tr><th>เหรียญสุดท้าย</th><th>ยอดเหลือ</th><th>เหรียญรวม</th></tr><tr><td>1</td><td>6</td><td>1+F[6] = 3</td></tr><tr><td>3</td><td>4</td><td>1+F[4] = 2</td></tr><tr><td>4</td><td>3</td><td>1+F[3] = 2</td></tr></table><p><b>F[7] = 2</b> (3+4) ที่ยอด 2 ลองเหรียญ 3 หรือ 4 ไม่ได้ เพราะยอดเหลือ 2−3 และ 2−4 ติดลบ มีเหรียญ 1 ใช้ได้ทางเดียว: F[2] = 1 + F[1] = 2</p>`],
+ ['ใบงาน 8 · เติมตารางและย้อนเหรียญ','เติม F[0] ถึง F[10] พร้อมเหรียญที่เลือกในแต่ละยอด แล้ววาดลูกศรย้อนยอด 8 และตรวจจำนวนกับมูลค่ารวม',
+  `<table class="tbl2"><tr><th>x</th>${CS7.F.map((_,x)=>`<td>${x}</td>`).join('')}</tr><tr><th>F[x]</th>${CS7.F.map(v=>`<td>${v}</td>`).join('')}</tr><tr><th>เหรียญที่เลือก</th>${CS7.last.map((c,x)=>`<td>${x===0?'–':c}</td>`).join('')}</tr></table><p>(เมื่อเสมอกัน เก็บเหรียญที่ลองก่อน เรียง 1,3,4 ถ้าอาจารย์ใช้กติกาต่าง ช่องเหรียญที่เลือกอาจต่าง แต่ F เหมือนกัน)</p><p>ย้อนยอด 8: เลือก 4 → เหลือ 4 → เลือก 4 → เหลือ 0 ได้ <b>[4, 4]</b> จำนวน 2 เหรียญ = F[8] มูลค่ารวม 4+4 = 8 ตรงยอด</p>`],
+ ['ใบงาน 9 · RAM กับหน่วยของข้อมูล','อธิบาย Count[7]=2 และ Last[7]=3 ว่าเลขแต่ละตัวหมายถึงอะไร แล้ว trace ยอด 7 โดยลองเหรียญ 1,3,4 ตามลำดับ',
+  `<p>ตามที่ cheat sheet เก็บ F[x] ที่ Count[x+1] จึงเป็นช่องของยอด 6: <b>Count[7] = 2</b> คือ F[6] = 2 หมายถึง "6 บาทใช้ 2 เหรียญ" (จำนวนเหรียญ) ส่วน <b>Last[7] = 3</b> คือ เหรียญสุดท้ายที่เลือกของยอด 6 มีมูลค่า 3 บาท (มูลค่า ไม่ใช่จำนวน)</p><p>ถ้าให้ trace ยอด x = 7 (เขียนลง Count[8], Last[8]): best = 11 · เหรียญ 1: candidate = 1 + Count[7] = 1+2 = 3 → best = 3, chosen = 1 · เหรียญ 3: candidate = 1 + Count[5] = 1+1 = 2 → best = 2, chosen = 3 · เหรียญ 4: candidate = 1 + Count[4] = 1+1 = 2 ไม่น้อยกว่า 2 · เขียน Count[8] ← 2, Last[8] ← 3</p>`],
+ ['ใบงาน 10 · คลินิกเลือกวิธี','งาน A เวลา 09–10 ค่า 3, B เวลา 10–11 ค่า 5, C เวลา 09–11 ค่า 9: เลือกชุดเมื่อเป้าหมายคือจำนวนงาน แล้วเลือกใหม่เมื่อเป้าหมายคือคุณค่ารวม อธิบายความต่าง',
+  `<p><b>เป้าหมายจำนวนงานมากสุด:</b> เลือก A+B ได้ 2 งาน (เริ่มงานถัดไปตรงเวลาจบได้) ส่วน C ได้ 1 งาน กฎ "เลือกงานจบเร็วสุดก่อน" ใช้ได้กับเป้าหมายนี้</p><p><b>เป้าหมายคุณค่ารวมมากสุด:</b> A+B ได้ 3+5 = 8 แต่ C ได้ 9 จึงเลือก <b>C</b> เดี่ยว กฎจบเร็วสุดตอบข้อนี้ไม่ได้ เพราะไม่ดูคุณค่า ต้องคิดแบบสองทางเลือก (เอางานนี้ รวมกับคำตอบดีสุดของงานที่ไม่ทับ / ไม่เอา ใช้คำตอบของงานก่อนหน้า) คล้ายกระเป๋า แต่ข้อจำกัดคือไม่ทับเวลา แทนน้ำหนัก ความต่างคือ <i>เป้าหมายเปลี่ยน วิธีที่ถูกก็เปลี่ยน</i></p>`]
+];
+$('wList').innerHTML=WB.map(([t,q,a])=>`<details class="q"><summary>${t}</summary><p>${q}</p><details class="q" style="margin-top:6px"><summary>เปิดเฉลย (ลองเขียนเองก่อน)</summary>${a}</details></details>`).join('');
+
+/* ---------------- init ---------------- */
+drawItems();
+CS=coinSim([1,3,4],6);KS=knapSim(KItems,7);
+CP.go(0);KP.go(0);
+</script>
+</body>
+</html>
